@@ -30,15 +30,19 @@ export function getProductStatus(enabled: boolean, totalStock: number): ProductS
 export function groupProductsByStatus<T extends { status: ProductStatus }>(
     products: T[],
 ): Record<ProductStatus, T[]> {
-    return {
-        active: products.filter(p => p.status === 'active'),
-        'low-stock': products.filter(p => p.status === 'low-stock'),
-        'out-of-stock': products.filter(p => p.status === 'out-of-stock'),
-        disabled: products.filter(p => p.status === 'disabled'),
+    const result: Record<ProductStatus, T[]> = {
+        active: [],
+        'low-stock': [],
+        'out-of-stock': [],
+        disabled: [],
     };
+    for (const product of products) {
+        result[product.status].push(product);
+    }
+    return result;
 }
 
-const STATUS_LABELS: Record<ProductStatus, string> = {
+export const STATUS_LABELS: Record<ProductStatus, string> = {
     active: 'Active',
     'low-stock': 'Low Stock',
     'out-of-stock': 'Out of Stock',

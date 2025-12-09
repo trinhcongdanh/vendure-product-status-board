@@ -35,32 +35,10 @@ export default function ProductStatusBoardPage() {
         queryFn: () => api.query(productStatusBoardListDocument, {}),
     });
 
-    // Calculate stats from all products (before any filters)
-    const stats = useMemo(() => {
-        if (!data?.products?.items) {
-            return { total: 0, active: 0, lowStock: 0, outOfStock: 0, disabled: 0 };
-        }
-
-        const productsWithStatus = data.products.items.map(product => {
-            const totalStock = calculateTotalStock(product.variants);
-            return getProductStatus(product.enabled, totalStock);
-        });
-
-        return {
-            total: productsWithStatus.length,
-            active: productsWithStatus.filter(s => s === 'active').length,
-            lowStock: productsWithStatus.filter(s => s === 'low-stock').length,
-            outOfStock: productsWithStatus.filter(s => s === 'out-of-stock').length,
-            disabled: productsWithStatus.filter(s => s === 'disabled').length,
-        };
-    }, [data]);
-
-    const { groupedProducts, totalFiltered, totalPages, allFilteredProducts } = useMemo(() => {
-        if (!data?.products?.items) {
-            return { groupedProducts: null, totalFiltered: 0, totalPages: 0, allFilteredProducts: [] };
-        }
-
-        const productsWithStatus = data.products.items.map(product => {
+    // Transform products with status - computed once
+    const productsWithStatus = useMemo(() => {
+        if (!data?.products?.items) return [];
+        return data.products.items.map(product => {
             const totalStock = calculateTotalStock(product.variants);
             const status = getProductStatus(product.enabled, totalStock);
             return {
@@ -72,15 +50,41 @@ export default function ProductStatusBoardPage() {
                 enabled: product.enabled,
             };
         });
+    }, [data]);
+
+    // Calculate stats from all products (before any filters)
+    const stats = useMemo(() => {
+        if (productsWithStatus.length === 0) {
+            return { total: 0, active: 0, lowStock: 0, outOfStock: 0, disabled: 0 };
+        }
+
+        const counts = { active: 0, 'low-stock': 0, 'out-of-stock': 0, disabled: 0 };
+        for (const product of productsWithStatus) {
+            counts[product.status]++;
+        }
+
+        return {
+            total: productsWithStatus.length,
+            active: counts.active,
+            lowStock: counts['low-stock'],
+            outOfStock: counts['out-of-stock'],
+            disabled: counts.disabled,
+        };
+    }, [productsWithStatus]);
+
+    const { groupedProducts, totalFiltered, totalPages, allFilteredProducts } = useMemo(() => {
+        if (productsWithStatus.length === 0) {
+            return { groupedProducts: null, totalFiltered: 0, totalPages: 0, allFilteredProducts: [] };
+        }
 
         // Apply search filter
-        const searchFiltered = searchTerm
+        const searchFilteredProducts = searchTerm
             ? productsWithStatus.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
             : productsWithStatus;
 
         // Apply status filter
         const statusFiltered =
-            statusFilter === 'all' ? searchFiltered : searchFiltered.filter(p => p.status === statusFilter);
+            statusFilter === 'all' ? searchFilteredProducts : searchFilteredProducts.filter(p => p.status === statusFilter);
 
         const total = statusFiltered.length;
         const pages = Math.ceil(total / pageSize);

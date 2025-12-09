@@ -6,13 +6,13 @@ import { Link } from '@tanstack/react-router';
 import { ExternalLink, Package } from 'lucide-react';
 import { toast } from 'sonner';
 import { updateProductEnabledDocument } from '../graphql/product-status-board.graphql.js';
-import { ProductStatus } from '../utils/product-status.js';
+import { ProductStatus, STATUS_LABELS } from '../utils/product-status.js';
 
-const STATUS_STYLES: Record<ProductStatus, { label: string; className: string }> = {
-    active: { label: 'Active', className: 'bg-green-100 text-green-700' },
-    'low-stock': { label: 'Low Stock', className: 'bg-yellow-100 text-yellow-700' },
-    'out-of-stock': { label: 'Out of Stock', className: 'bg-red-100 text-red-700' },
-    disabled: { label: 'Disabled', className: 'bg-gray-100 text-gray-700' },
+const STATUS_STYLES: Record<ProductStatus, string> = {
+    active: 'bg-green-100 text-green-700',
+    'low-stock': 'bg-yellow-100 text-yellow-700',
+    'out-of-stock': 'bg-red-100 text-red-700',
+    disabled: 'bg-gray-100 text-gray-700',
 };
 
 interface ProductCardProps {
@@ -25,7 +25,6 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ id, name, imageUrl, status, totalStock, enabled }: ProductCardProps) {
-    const statusStyle = STATUS_STYLES[status];
     const queryClient = useQueryClient();
     const toggleMutation = useMutation({
         mutationFn: (newEnabled: boolean) =>
@@ -55,9 +54,9 @@ export function ProductCard({ id, name, imageUrl, status, totalStock, enabled }:
                 <h3 className="font-medium text-sm line-clamp-2">{name}</h3>
 
                 <span
-                    className={`inline-block px-2 py-1 rounded text-xs font-medium ${statusStyle.className}`}
+                    className={`inline-block px-2 py-1 rounded text-xs font-medium ${STATUS_STYLES[status]}`}
                 >
-                    {statusStyle.label}
+                    {STATUS_LABELS[status]}
                 </span>
 
                 <p className="text-sm text-muted-foreground">Stock: {totalStock}</p>

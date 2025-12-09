@@ -1,12 +1,5 @@
-import { ProductStatus } from '../utils/product-status.js';
+import { ProductStatus, STATUS_LABELS } from '../utils/product-status.js';
 import { ProductCard } from './ProductCard.js';
-
-const STATUS_LABELS: Record<ProductStatus, string> = {
-    active: 'Active',
-    'low-stock': 'Low Stock',
-    'out-of-stock': 'Out of Stock',
-    disabled: 'Disabled',
-};
 
 interface ProductData {
     id: string;
