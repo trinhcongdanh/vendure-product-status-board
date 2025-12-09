@@ -1,9 +1,5 @@
 export type ProductStatus = 'active' | 'low-stock' | 'out-of-stock' | 'disabled';
-
-// Ngưỡng cảnh báo low stock
 export const LOW_STOCK_THRESHOLD = 10;
-
-// Tính tổng tồn kho từ tất cả variants
 export function calculateTotalStock(
     variants: Array<{
         stockLevels: Array<{ stockOnHand: number; stockAllocated: number }>;
@@ -40,4 +36,42 @@ export function groupProductsByStatus<T extends { status: ProductStatus }>(
         'out-of-stock': products.filter(p => p.status === 'out-of-stock'),
         disabled: products.filter(p => p.status === 'disabled'),
     };
+}
+
+const STATUS_LABELS: Record<ProductStatus, string> = {
+    active: 'Active',
+    'low-stock': 'Low Stock',
+    'out-of-stock': 'Out of Stock',
+    disabled: 'Disabled',
+};
+
+export interface ExportProduct {
+    id: string;
+    name: string;
+    status: ProductStatus;
+    totalStock: number;
+    enabled: boolean;
+}
+
+export function exportProductsToCSV(products: ExportProduct[], filename = 'products-export'): void {
+    const headers = ['ID', 'Name', 'Status', 'Stock', 'Enabled'];
+    const rows = products.map(p => [
+        p.id,
+        `"${p.name.replace(/"/g, '""')}"`,
+        STATUS_LABELS[p.status],
+        p.totalStock.toString(),
+        p.enabled ? 'Yes' : 'No',
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${filename}-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 }

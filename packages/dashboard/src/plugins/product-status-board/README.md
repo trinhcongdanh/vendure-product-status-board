@@ -2,93 +2,46 @@
 
 A Vendure Dashboard plugin that displays all products in a grid view, grouped by their status.
 
-## Author Notes
+## Features
 
-> **Candidate:** [Tên ứng viên]
-> **Time spent:** ~X hours
-> **Experience level:** [Junior/Mid/Senior]
+### Statistics Dashboard
 
-### Why I Built It This Way
+- **Overview Cards**: 5 clickable stat cards showing Total, Active, Low Stock, Out of Stock, Disabled counts
+- **Percentage Display**: Each status shows percentage of total products
+- **Interactive Filter**: Click on any card to filter products by that status
 
-Khi tiếp cận bài test này, tôi đã cân nhắc một số design decisions:
+### Core Features
 
-1. **Grid View thay vì Table View**: Tôi chọn grid vì nó trực quan hơn cho việc quản lý inventory - người dùng có thể nhanh chóng scan qua hình ảnh sản phẩm và status badges. Trong kinh nghiệm làm việc với các e-commerce admin panels, tôi nhận thấy visual overview giúp warehouse staff làm việc hiệu quả hơn.
-
-2. **Grouped by Status**: Thay vì chỉ filter, tôi group products theo status để user thấy được "big picture" - bao nhiêu sản phẩm đang active, bao nhiêu cần restock, etc.
-
-3. **Inline Toggle**: Cho phép enable/disable product ngay trên card mà không cần mở detail page - giảm số clicks cần thiết cho common operations.
-
-### Challenges & Solutions
-
-| Challenge | Solution |
-|-----------|----------|
-| Tính stock từ multiple variants + locations | Aggregate `stockOnHand - stockAllocated` across all variants và stock locations |
-| Real-time UI update sau mutation | Sử dụng React Query's `invalidateQueries` để refetch data |
-| Responsive layout cho nhiều screen sizes | CSS Grid với responsive breakpoints (1-4 columns) |
-
-### What I Would Do Differently With More Time
-
-Nếu có thêm thời gian, tôi sẽ:
-- Thêm **virtual scrolling** cho performance với large datasets (đã từng implement với `react-window` trong project trước)
-- Implement **optimistic updates** cho toggle switch để UX mượt hơn
-- Thêm **keyboard shortcuts** (J/K để navigate, E để toggle) - pattern học từ Gmail/GitHub
-
----
-
-## Features Completed
-
-### Plugin & Routing
-
-- [x] Created UI Plugin for Vendure Admin (`ProductStatusBoardPlugin`)
-- [x] Added sidebar menu item "Product Status Board" under Catalog section
-- [x] Click on product card opens product detail page (deep link)
-
-### Data from GraphQL
-
-- [x] Fetch products with required fields: `id`, `name`, `slug`, `createdAt`, `enabled`
-- [x] Fetch inventory data via `variants.stockLevels` (stockOnHand, stockAllocated)
-- [x] Fetch product thumbnail via `featuredAsset.preview`
-
-### Status Mapping
-
-- [x] Status calculated from real data:
+- **Grid View Layout**: Responsive grid (1-4 columns) for visual product management
+- **Status Grouping**: Products grouped by 4 status sections:
     - **Active**: enabled = true AND stock > 10
     - **Low Stock**: enabled = true AND 0 < stock <= 10
     - **Out of Stock**: enabled = true AND stock <= 0
     - **Disabled**: enabled = false
+- **Product Cards**: Display thumbnail, name, status badge, stock count, and toggle switch
+- **Quick Actions**: Enable/disable products directly from the card
 
-### UI: Product Status Board
+### Search & Filter
 
-- [x] Grid view layout (responsive: 1-4 columns)
-- [x] Product cards with:
-    - Product name
-    - Thumbnail (placeholder icon if no image)
-    - Status badge (color-coded)
-    - Stock count
-    - Enabled toggle switch
-    - "Open Detail" link
-- [x] Grouped by 4 status sections: Active / Low Stock / Out of Stock / Disabled
+- **Search**: Find products by name
+- **Status Filter**: Filter by specific status (All, Active, Low Stock, Out of Stock, Disabled)
 
-### Interactions
+### Pagination
 
-- [x] "Open Detail" button → navigates to `/products/:id`
-- [x] Toggle enabled/disabled via Switch component
-- [x] Mutation updates UI via React Query (`invalidateQueries`)
-- [x] Toast notifications on success/error
+- **Page Size Options**: 10, 20, 50, or 100 items per page
+- **Page Navigation**: Previous/Next buttons with page number indicators
+- **Smart Pagination**: Ellipsis for large page counts
+
+### Export
+
+- **Export to CSV**: Download filtered products as CSV file
+- **Smart Naming**: File name includes filter status and date
 
 ### UI States
 
-- [x] Loading state (spinner + text)
-- [x] Error state with Retry button
-- [x] Empty state (when no products)
-
-## Tech Stack
-
-- React + TypeScript
-- Vendure Dashboard Plugin system
-- TailwindCSS
-- TanStack Query (React Query)
-- Lucide React (icons)
+- Loading state with spinner
+- Error state with Retry button
+- Empty state with clear filters option
 
 ## File Structure
 
@@ -99,14 +52,26 @@ product-status-board/
 ├── README.md                         # This file
 └── dashboard/
     ├── index.tsx                     # Dashboard extension (routes, nav menu)
-    ├── ProductStatusBoardPage.tsx    # Main page component
-    ├── product-status-board.graphql.ts  # GraphQL query & mutation
+    ├── pages/
+    │   └── ProductStatusBoardPage.tsx # Main page component
+    ├── graphql/
+    │   └── product-status-board.graphql.ts  # GraphQL query & mutation
     ├── utils/
-    │   └── product-status.ts         # Helper functions (status calculation)
+    │   └── product-status.ts         # Helper functions (status, export CSV)
     └── components/
+        ├── StatsSummary.tsx          # Statistics dashboard cards
         ├── StatusSection.tsx         # Section component for each status group
-        └── ProductCard.tsx           # Product card with toggle mutation
+        ├── ProductCard.tsx           # Product card with toggle mutation
+        └── Pagination.tsx            # Pagination controls component
 ```
+
+## Tech Stack
+
+- React + TypeScript
+- Vendure Dashboard Plugin system
+- TailwindCSS
+- TanStack Query (React Query)
+- Lucide React (icons)
 
 ## Usage
 
@@ -125,39 +90,69 @@ export const config: VendureConfig = {
 
 2. Navigate to Admin Dashboard → Catalog → Product Status Board
 
-## Future Improvements (Nice to Have)
+## GraphQL
 
-- [ ] Add search/filter functionality
-- [ ] Add pagination for large product catalogs
-- [ ] Add "Mark as back in stock" button (bulk update stock)
-- [ ] Add drag-and-drop to reorder products
-- [ ] Add export to CSV functionality
-- [ ] Add statistics summary (charts/graphs)
-- [ ] Configurable LOW_STOCK_THRESHOLD via plugin options
-- [ ] Add sorting options (by name, stock, date)
-- [ ] Real-time updates via WebSocket/subscriptions
+### Query: Fetch Products
 
-## Evaluation Notes
+```graphql
+query ProductStatusBoardList {
+    products(options: { take: 1000 }) {
+        items {
+            id
+            name
+            slug
+            createdAt
+            enabled
+            featuredAsset {
+                preview
+            }
+            variants {
+                stockLevels {
+                    stockOnHand
+                    stockAllocated
+                }
+            }
+        }
+    }
+}
+```
 
-### Fit for Dashboard
+### Mutation: Toggle Product Status
 
-This plugin fits well within the Vendure Dashboard because:
+```graphql
+mutation UpdateProductEnabled($input: UpdateProductInput!) {
+    updateProduct(input: $input) {
+        id
+        enabled
+    }
+}
+```
 
-- Uses native Vendure Dashboard components (`Page`, `PageTitle`, `Card`, `Switch`)
-- Follows existing UI patterns and styling (TailwindCSS)
-- Integrates seamlessly with the sidebar navigation
-- Uses the same data fetching patterns (GraphQL + React Query)
+## Checklist
 
-### Code Quality
+### Required Features
 
-- Components are separated by responsibility
-- Reusable utility functions for status logic
-- TypeScript for type safety
-- No duplicate logic between components
+- [x] UI Plugin for Vendure Admin
+- [x] Sidebar menu item "Product Status Board" under Catalog
+- [x] Click product → open product detail page
+- [x] Fetch products with: id, name, slug, createdAt, enabled
+- [x] Fetch inventory via variants.stockLevels
+- [x] Fetch thumbnail via featuredAsset.preview
+- [x] Status mapping from real data
+- [x] Grid view layout (responsive 1-4 columns)
+- [x] Product cards with name, thumbnail, status badge, stock, toggle
+- [x] Grouped by 4 status sections
+- [x] "Open Detail" button → deep link to product
+- [x] Toggle enabled/disabled via Switch
+- [x] Mutation updates UI via React Query
+- [x] Loading state
+- [x] Error state with Retry
+- [x] Empty state
 
-### UX Considerations
+### Bonus Features
 
-- Responsive grid layout adapts to screen size
-- Visual feedback on interactions (loading states, toasts)
-- Color-coded status badges for quick scanning
-- Grouped sections make it easy to find products by status
+- [x] Search by product name
+- [x] Filter by status
+- [x] Pagination with page size options
+- [x] Statistics Dashboard with clickable cards
+- [x] Export to CSV
