@@ -156,3 +156,53 @@ mutation UpdateProductEnabled($input: UpdateProductInput!) {
 - [x] Pagination with page size options
 - [x] Statistics Dashboard with clickable cards
 - [x] Export to CSV
+
+## Future Improvements
+
+With more time, the following features could be added:
+
+- [ ] **Bulk Actions**: Select multiple products and enable/disable in batch
+- [ ] **Sort Options**: Sort by name, stock level, or created date
+- [ ] **Virtual Scrolling**: Optimize performance for large datasets (1000+ products)
+- [ ] **Optimistic Updates**: Update UI immediately on toggle, rollback if API fails
+- [ ] **Keyboard Shortcuts**: J/K to navigate, E to toggle (Gmail/GitHub pattern)
+- [ ] **Configurable Threshold**: Allow admin to configure LOW_STOCK_THRESHOLD via plugin options
+- [ ] **Real-time Updates**: WebSocket/Subscription to sync changes from other users
+- [ ] **Drag & Drop**: Reorder products within each section
+
+## Evaluation
+
+### Fit for Vendure Dashboard
+
+This plugin fits well within the Vendure Dashboard because:
+
+1. **Uses native components**: `Page`, `PageTitle`, `Card`, `Switch` from Vendure Dashboard
+2. **Consistent UI/UX**: Follows dashboard design patterns and styling (TailwindCSS)
+3. **Sidebar integration**: Menu item placed in "Catalog" section alongside Products, Facets
+4. **Data fetching pattern**: Uses GraphQL API and React Query like other dashboard pages
+5. **Deep linking**: Links to product detail using dashboard's router
+
+### Strengths
+
+| Aspect | Description |
+|--------|-------------|
+| **UX** | Statistics cards provide quick overview, clickable to filter |
+| **Performance** | Client-side filtering/pagination, no API calls on each filter change |
+| **Maintainability** | Separated components, utility functions, TypeScript throughout |
+| **Accessibility** | Disabled states, focus rings, semantic HTML elements |
+
+### Current Limitations
+
+| Issue | Impact | Workaround |
+|-------|--------|------------|
+| Fetch all products (take: 1000) | Slow with large catalogs | Implement server-side pagination |
+| No real-time sync | Stale data with multiple users | Manual refresh or add polling |
+| Hardcoded LOW_STOCK_THRESHOLD | Not flexible | Could be configured via plugin options |
+
+### Trade-offs
+
+1. **Client-side vs Server-side pagination**: Chose client-side for smoother UX (instant filtering), but trade-off is slower initial load with large datasets.
+
+2. **Grouped view vs Flat list**: Chose grouped view for easier status scanning, but more complex to paginate (sections may be split across pages).
+
+3. **Optimistic vs Pessimistic updates**: Chose pessimistic (wait for API response) to ensure data consistency, but UX is not as instant as optimistic updates.
